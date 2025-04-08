@@ -60,10 +60,10 @@ def main():
         output = None
 
     for trial in range(args.trials):
-        total_attacker_losses, total_defender_losses, total_dice_rolls, elapsed_time = simulate_battle(args.attacking_troops, args.defending_troops)
+        total_attacker_losses, total_defender_losses, max_rolls, non_max_rolls, elapsed_time = simulate_battle(args.attacking_troops, args.defending_troops)
         debug_print(f"Trial {trial + 1}: Attacker Losses: {total_attacker_losses}; Defender Losses: {total_defender_losses}; Difference: {total_attacker_losses - total_defender_losses}")
 
-        result = f"{total_attacker_losses},{total_defender_losses},{total_attacker_losses - total_defender_losses},{total_dice_rolls},{elapsed_time:.2f}"
+        result = f"{total_attacker_losses},{total_defender_losses},{total_attacker_losses - total_defender_losses},{max_rolls},{non_max_rolls},{elapsed_time:.2f}"
         if output:
             output.write(result + "\n")
         else:
@@ -135,21 +135,27 @@ def roll_dice(attacking_troops: int, defending_troops: int):
     according to the rules of Risk. It is assumed that the caller has already
     subtracted the one troop that the attacker must leave behind before calling
     this function.
+
+    Returns the number of losses for both attacker and defender, and true or
+    false as to whether this is the "maximum" roll. The maximum roll means that
+    the maximum allowable number of attackers and defenders are participating in
+    the battle.
     """
     attackers = min(attacking_troops, MAX_ATTACKERS)
     defenders = min(defending_troops, MAX_DEFENDERS)
+    is_max_roll = attackers >= MAX_ATTACKERS and defenders >= MAX_DEFENDERS
 
-    if len(PRECOMPUTED_ROLLS) > 0 and attackers >= MAX_ATTACKERS and defenders >= MAX_DEFENDERS:
+    if len(PRECOMPUTED_ROLLS) > 0 and is_max_roll:
         attacker_losses, defender_losses = PRECOMPUTED_ROLLS[random.randint(0, len(PRECOMPUTED_ROLLS)-1)]
         debug_print(f"[pre-computed] Losses: {attacker_losses},{defender_losses}; Troops: {attacking_troops-attacker_losses},{defending_troops-defender_losses}")
-        return attacker_losses, defender_losses
+        return attacker_losses, defender_losses, is_max_roll
 
     attacker_rolls = [roll_one_die() for _ in range(attackers)]
     defender_rolls = [roll_one_die() for _ in range(defenders)]
     attacker_losses, defender_losses = calculate_losses(attacker_rolls, defender_rolls)
     debug_print(f"[simulated] Attacker: {attacker_rolls}; Defender: {defender_rolls}; Losses: {attacker_losses},{defender_losses}; Troops: {attacking_troops-attacker_losses},{defending_troops-defender_losses}")
 
-    return attacker_losses, defender_losses
+    return attacker_losses, defender_losses, is_max_roll
 
 
 def simulate_battle(attacking_troops: int, defending_troops: int):
@@ -161,21 +167,23 @@ def simulate_battle(attacking_troops: int, defending_troops: int):
     total_defender_losses = 0
 
     start_time = time.time()
-    total_dice_rolls = 0
+    non_maximum_rolls = 0
+    maximum_rolls = 0
 
     # Per the rules of Risk, the attacker must leave one troop behind if they
     # conquer a territory. Therefore attacks are permitted only if the attacker
     # has more than one troop.
     while attacking_troops > 1 and defending_troops > 0:
-        attacker_losses, defender_losses = roll_dice(attacking_troops-1, defending_troops)
+        attacker_losses, defender_losses, is_max_roll = roll_dice(attacking_troops-1, defending_troops)
         total_attacker_losses += attacker_losses
         total_defender_losses += defender_losses
-        total_dice_rolls += 1
+        non_maximum_rolls += 1 - int(is_max_roll)
+        maximum_rolls += int(is_max_roll)
 
         attacking_troops -= attacker_losses
         defending_troops -= defender_losses
 
-    return total_attacker_losses, total_defender_losses, total_dice_rolls, 1000*(time.time() - start_time)
+    return total_attacker_losses, total_defender_losses, maximum_rolls, non_maximum_rolls, 1000*(time.time() - start_time)
 
 
 if __name__ == "__main__":
