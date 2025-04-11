@@ -39,8 +39,8 @@ def main():
 
     with open(args.file, "r") as file:
         for line in file:
-            attacker_losses, defender_losses, diff, rolls, calc_time = map(lambda x: float(x) if '.' in x else int(x), line.strip().split(","))
-            debug_print(f"Attacker Losses: {attacker_losses}, Defender Losses: {defender_losses}, Difference: {diff}, Rolls: {rolls}, Time: {calc_time}")
+            attacker_losses, defender_losses, diff, _max_rolls, _non_max_rolls, calc_time = map(lambda x: float(x) if '.' in x else int(x), line.strip().split(","))
+            debug_print(f"Attacker Losses: {attacker_losses}, Defender Losses: {defender_losses}, Difference: {diff}, Time: {calc_time}")
 
             frequency[diff] += 1
 
@@ -65,12 +65,10 @@ def main():
             variance = (total_diff_squared / count) - (average_diff ** 2)
             std_dev = variance ** 0.5
 
-            print(f"Analysis of {basename(args.file)}:")
             print(f"Total Trials: {count}")
-            print(f"Average Difference: {average_diff}")
-            print(f"Standard Deviation: {std_dev}")
-            print(f"Minimum Difference: {min_diff}")
-            print(f"Maximum Difference: {max_diff}")
+            print(f"Average Difference: {-average_diff:.2f}")
+            print(f"Standard Deviation: {std_dev:.2f}")
+            print(f"Range: {max_diff} to {min_diff}")
 
         if args.print_histogram:
             print("Difference,Frequency")

@@ -18,6 +18,7 @@ DEBUG = False
 PRECOMPUTED_ROLLS = []
 MAX_ATTACKERS = 3
 MAX_DEFENDERS = 2
+HEADER = "Attacker Losses,Defender Losses,Difference,Max Rolls,Non-Max Rolls,Elapsed Time"
 
 def main():
     parser = argparse.ArgumentParser(description="Risk Dice Simulator")
@@ -27,6 +28,7 @@ def main():
     parser.add_argument("-t", "--trials", type=int, default=1, help="Number of trials to simulate (default: 1)")
     parser.add_argument("-r", "--random-seed", type=int, default=0, help="Seed for random number generator (default: randomized)")
     parser.add_argument("-o", "--output-file", type=str, help="Output file to save results")
+    parser.add_argument("--header", action="store_true", help="Print header in output file")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     parser.add_argument("--no-precomputed-rolls", action="store_true", help="Do not use any precomputed dice rolls (runs slower)")
 
@@ -56,14 +58,19 @@ def main():
 
     if args.output_file:
         output = open(args.output_file, "w")
+        if args.header:
+            output.write(HEADER + "\n")
     else:
         output = None
+        if args.header:
+            print(HEADER)
 
     for trial in range(args.trials):
         total_attacker_losses, total_defender_losses, max_rolls, non_max_rolls, elapsed_time = simulate_battle(args.attacking_troops, args.defending_troops)
-        debug_print(f"Trial {trial + 1}: Attacker Losses: {total_attacker_losses}; Defender Losses: {total_defender_losses}; Difference: {total_attacker_losses - total_defender_losses}")
+        diff = total_defender_losses - total_attacker_losses
+        debug_print(f"Trial {trial + 1}: Attacker Losses: {total_attacker_losses}; Defender Losses: {total_defender_losses}; Difference: {diff}")
 
-        result = f"{total_attacker_losses},{total_defender_losses},{total_attacker_losses - total_defender_losses},{max_rolls},{non_max_rolls},{elapsed_time:.2f}"
+        result = f"{total_attacker_losses},{total_defender_losses},{diff},{max_rolls},{non_max_rolls},{elapsed_time:.2f}"
         if output:
             output.write(result + "\n")
         else:
